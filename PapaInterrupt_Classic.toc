@@ -1,0 +1,9 @@
+## Author: Alan Denniston
+## Interface: 11503
+## Notes: Announces your successful interrupts to party/raid
+## Title: PapaInterrupt
+## Version: 0.5.2
+## SavedVariablesPerCharacter: PapaInterruptSettings
+
+PapaInterrupt.lua
+PapaInterruptMenu.lua
