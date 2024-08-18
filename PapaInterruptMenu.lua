@@ -8,7 +8,12 @@ menu:EnableMouse(true)
 menu:RegisterForDrag("LeftButton")
 menu:SetScript("OnDragStart", menu.StartMoving)
 menu:SetScript("OnDragStop", menu.StopMovingOrSizing)
-menu:Hide() -- Menu is hidden by default
+menu:Hide() 
+
+-- Set the title of the menu
+local title = menu:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+title:SetPoint("TOP", menu, "TOP", 0, -5)
+title:SetText("PapaInterrupt Menu")
 
 -- Create the "Add Interrupt Message" edit box
 local addMessageEditBox = CreateFrame("EditBox", "PapaInterruptAddMessageEditBox", menu, "InputBoxTemplate")
