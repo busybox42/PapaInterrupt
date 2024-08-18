@@ -2,7 +2,7 @@
 ## Interface: 110000, 110002
 ## Notes: Announces your successful interrupts to party/raid
 ## Title: PapaInterrupt
-## Version: 0.5.1
+## Version: 0.5.2
 ## SavedVariablesPerCharacter: PapaInterruptSettings
 
 PapaInterrupt.lua
