@@ -1,5 +1,6 @@
 ## Author: Alan Denniston
-## Interface: 110000, 110002
+## Interface: 110002, 110005
+## X-Interface: 110005
 ## Notes: Announces your successful interrupts to party/raid
 ## Title: PapaInterrupt
 ## Version: 0.5.2
