@@ -1,9 +1,9 @@
+## Title: PapaInterrupt
+## Notes: Announces your successful interrupts to party/raid
 ## Author: Alan Denniston
+## Version: 0.5.2
 ## Interface: 40400
 ## X-Interface: 40400
-## Notes: Announces your successful interrupts to party/raid
-## Title: PapaInterrupt
-## Version: 0.5.2
 ## SavedVariablesPerCharacter: PapaInterruptSettings
 
 PapaInterrupt.lua
