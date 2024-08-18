@@ -1,5 +1,6 @@
 ## Author: Alan Denniston
 ## Interface: 40400
+## X-Interface: 40400
 ## Notes: Announces your successful interrupts to party/raid
 ## Title: PapaInterrupt
 ## Version: 0.5.2
