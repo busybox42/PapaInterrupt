@@ -1,7 +1,7 @@
 ## Title: PapaInterrupt
 ## Notes: Announces your successful interrupts to party/raid
 ## Author: Alan Denniston
-## Version: 0.5.2
+## Version: 0.5.3
 ## Interface: 40400
 ## X-Interface: 40400
 ## SavedVariablesPerCharacter: PapaInterruptSettings
