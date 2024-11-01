@@ -2,8 +2,8 @@
 ## Notes: Announces your successful interrupts to party/raid
 ## Author: Alan Denniston
 ## Version: 0.5.3
-## Interface: 110002
-## X-Interface: 110002
+## Interface: 110005
+## X-Interface: 110005
 ## SavedVariablesPerCharacter: PapaInterruptSettings
 
 PapaInterrupt.lua

@@ -45,6 +45,9 @@ end
 
 LoadPapaInterruptSettings()
 
+-- Initialize a variable to track the last message index
+local lastMessageIndex = nil;
+
 local interr = CreateFrame("Frame", "InterruptTrackerFrame", UIParent);
 interr:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 interr:RegisterEvent("PLAYER_ENTERING_WORLD");
@@ -75,8 +78,17 @@ interr:SetScript("OnEvent", function(self, event, ...)
             end
 
             if destName and interruptedSpell and interruptingSpell and sourceName then
-                -- Select a random message from the messages array
-                local randomIndex = math.random(#PapaInterruptSettings.messages)
+                -- Select a random message from the messages array without repeating the last one
+                local randomIndex
+                if #PapaInterruptSettings.messages > 1 then
+                    repeat
+                        randomIndex = math.random(#PapaInterruptSettings.messages)
+                    until randomIndex ~= lastMessageIndex
+                else
+                    randomIndex = 1
+                end
+                lastMessageIndex = randomIndex;  -- Update the last message index
+
                 local msgTemplate = PapaInterruptSettings.messages[randomIndex]
 
                 -- Replace placeholders with actual values
