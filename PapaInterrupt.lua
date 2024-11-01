@@ -1,9 +1,23 @@
-local UnitGUID = UnitGUID;
-local IsInInstance = IsInInstance;
+-- PapaInterrupt.lua
+
+local addonName, addonTable = ...
+local playerGUID = UnitGUID("player")
+
+-- Localized WoW API functions
+local UnitGUID = UnitGUID
+local IsInInstance = IsInInstance
 local GetSpellLink = C_Spell and C_Spell.GetSpellLink or GetSpellLink
-local InstanceType = "none"
-local RaidIconMaskToIndex =
-{
+local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
+local SendChatMessage = SendChatMessage
+local GetNumGroupMembers = GetNumGroupMembers
+local IsInRaid = IsInRaid
+local IsInGroup = IsInGroup
+local InCombatLockdown = InCombatLockdown
+local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
+local bit_band = bit.band
+
+-- Raid icon mapping
+local RaidIconMaskToIndex = {
     [COMBATLOG_OBJECT_RAIDTARGET1] = 1,
     [COMBATLOG_OBJECT_RAIDTARGET2] = 2,
     [COMBATLOG_OBJECT_RAIDTARGET3] = 3,
@@ -12,18 +26,15 @@ local RaidIconMaskToIndex =
     [COMBATLOG_OBJECT_RAIDTARGET6] = 6,
     [COMBATLOG_OBJECT_RAIDTARGET7] = 7,
     [COMBATLOG_OBJECT_RAIDTARGET8] = 8,
-};
+}
 
 local function GetRaidIcon(unitFlags)
-    -- Check for an appropriate icon for this unit
-    local raidTarget = bit.band(unitFlags, COMBATLOG_OBJECT_RAIDTARGET_MASK);
-    if (raidTarget == 0) then
-        return "";
-    end
-
-    return "{rt" .. RaidIconMaskToIndex[raidTarget] .. "}";
+    local raidTarget = bit_band(unitFlags, COMBATLOG_OBJECT_RAIDTARGET_MASK)
+    if raidTarget == 0 then return "" end
+    return "{rt" .. RaidIconMaskToIndex[raidTarget] .. "}"
 end
 
+-- Load or initialize settings
 local function LoadPapaInterruptSettings()
     if PapaInterruptDB and PapaInterruptDB.settings then
         PapaInterruptSettings = PapaInterruptDB.settings
@@ -45,40 +56,31 @@ end
 
 LoadPapaInterruptSettings()
 
--- Initialize a variable to track the last message index
-local lastMessageIndex = nil;
+local lastMessageIndex = nil
 
-local interr = CreateFrame("Frame", "InterruptTrackerFrame", UIParent);
-interr:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
-interr:RegisterEvent("PLAYER_ENTERING_WORLD");
-interr:RegisterEvent("ADDON_LOADED");
-interr:SetScript("OnEvent", function(self, event, ...)
+local frame = CreateFrame("Frame")
+frame:RegisterEvent("ADDON_LOADED")
+frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+
+frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
-        LoadPapaInterruptSettings()
-    elseif (event == "COMBAT_LOG_EVENT_UNFILTERED") then
-        local eventType, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, spellId = select(2,
-            CombatLogGetCurrentEventInfo());
-        if (eventType == "SPELL_INTERRUPT" and UnitGUID("player") == sourceGUID and PapaInterruptSettings.enabled) then
-            local extraSpellID = select(15, CombatLogGetCurrentEventInfo());
-            local destIcon = "";
-            if (destName) then
-                destIcon = GetRaidIcon(destRaidFlags);
-            end
+        local loadedAddon = ...
+        if loadedAddon == addonName then
+            LoadPapaInterruptSettings()
+            print(addonName .. " has been loaded and initialized.")
+        end
+    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+        if not PapaInterruptSettings.enabled then return end
 
-            local interruptingSpell = GetSpellLink(spellId);
-            local interruptedSpell = GetSpellLink(extraSpellID);
+        local _, eventType, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, spellId, _, _, extraSpellID = CombatLogGetCurrentEventInfo()
 
-            -- Error checking to ensure destName and interruptedSpell are strings
-            if type(destName) ~= "string" then
-                destName = ""
-            end
-
-            if type(interruptedSpell) ~= "string" then
-                interruptedSpell = ""
-            end
+        if eventType == "SPELL_INTERRUPT" and sourceGUID == playerGUID then
+            local destIcon = destName and GetRaidIcon(destRaidFlags) or ""
+            local interruptingSpell = GetSpellLink(spellId) or ""
+            local interruptedSpell = GetSpellLink(extraSpellID) or ""
 
             if destName and interruptedSpell and interruptingSpell and sourceName then
-                -- Select a random message from the messages array without repeating the last one
                 local randomIndex
                 if #PapaInterruptSettings.messages > 1 then
                     repeat
@@ -87,35 +89,35 @@ interr:SetScript("OnEvent", function(self, event, ...)
                 else
                     randomIndex = 1
                 end
-                lastMessageIndex = randomIndex;  -- Update the last message index
+                lastMessageIndex = randomIndex
 
                 local msgTemplate = PapaInterruptSettings.messages[randomIndex]
+                local msg = msgTemplate
+                    :gsub("%%sn", interruptedSpell)
+                    :gsub("%%is", interruptingSpell)
+                    :gsub("%%t", destName)
 
-                -- Replace placeholders with actual values
-                local msg = msgTemplate:gsub("%%sn", interruptedSpell):gsub("%%is", interruptingSpell):gsub("%%t",
-                    destName)
-
-                if (GetNumGroupMembers() > 0) then
-                    local msgType = PapaInterruptSettings.channel;
-                    if (IsInRaid(LE_PARTY_CATEGORY_HOME) and msgType == "INSTANCE_CHAT") then
-                        msgType = "RAID";
-                    elseif (IsInGroup(LE_PARTY_CATEGORY_HOME) and msgType == "INSTANCE_CHAT") then
-                        msgType = "PARTY";
+                if GetNumGroupMembers() > 0 then
+                    local msgType = PapaInterruptSettings.channel
+                    if IsInRaid() and msgType == "INSTANCE_CHAT" then
+                        msgType = "RAID"
+                    elseif IsInGroup() and msgType == "INSTANCE_CHAT" then
+                        msgType = "PARTY"
                     end
-                    SendChatMessage(msg, msgType);
+                    SendChatMessage(msg, msgType)
                 else
                     if InCombatLockdown() then
-                        DEFAULT_CHAT_FRAME:AddMessage(msg);
+                        DEFAULT_CHAT_FRAME:AddMessage(msg)
                     else
-                        SendChatMessage(msg, PapaInterruptSettings.channel);
+                        SendChatMessage(msg, PapaInterruptSettings.channel)
                     end
                 end
             else
-                print("Error: destName or interruptedSpell is nil")
+                print("Error: destName or interruptedSpell is invalid")
             end
         end
-    elseif (event == "PLAYER_ENTERING_WORLD") then
-        local _, iType = IsInInstance();
-        InstanceType = iType;
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        local _, iType = IsInInstance()
+        InstanceType = iType
     end
-end);
+end)
