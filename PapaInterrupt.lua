@@ -2,6 +2,7 @@
 
 local addonName, addonTable = ...
 local playerGUID = UnitGUID("player")
+local petGUID = UnitGUID("pet")
 
 -- Localized WoW API functions
 local UnitGUID = UnitGUID
@@ -62,6 +63,7 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:RegisterEvent("UNIT_PET")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
@@ -75,7 +77,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         local _, eventType, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, spellId, _, _, extraSpellID = CombatLogGetCurrentEventInfo()
 
-        if eventType == "SPELL_INTERRUPT" and sourceGUID == playerGUID then
+        -- Adjust the condition to account for player or pet interrupts
+        if eventType == "SPELL_INTERRUPT" and (sourceGUID == playerGUID or sourceGUID == petGUID) then
             local destIcon = destName and GetRaidIcon(destRaidFlags) or ""
             local interruptingSpell = GetSpellLink(spellId) or ""
             local interruptedSpell = GetSpellLink(extraSpellID) or ""
@@ -119,5 +122,11 @@ frame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "PLAYER_ENTERING_WORLD" then
         local _, iType = IsInInstance()
         InstanceType = iType
+    elseif event == "UNIT_PET" then
+        -- Update petGUID when the pet changes or is summoned
+        local unit = ...
+        if unit == "player" then
+            petGUID = UnitGUID("pet")
+        end
     end
 end)
